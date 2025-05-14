@@ -5,13 +5,11 @@ from book_library import Book, EBook, Library, BookNotAvailableError
 library = Library()
 root = tk.Tk()
 root.title("Library Management System")
-root.geometry("600x500")
+root.geometry("700x550")
 
-# Apply modern ttk theme
 style = ttk.Style()
-style.theme_use("vista")  # try: 'alt', 'clam', 'vista', 'default'
+style.theme_use("vista")
 
-# Global padding for all widgets
 PAD_X, PAD_Y = 10, 6
 
 # ================= UI Handlers =================
@@ -78,22 +76,30 @@ def remove_book():
         update_book_list()
 
 def view_books_by_author():
-    author = simpledialog.askstring("Search", "Enter author name:")
+    author = simpledialog.askstring("Search by Author", "Enter author's name:")
     if author:
         books = list(library.books_by_author(author))
-        listbox.delete(0, tk.END)
         if books:
-            listbox.insert(tk.END, f"Books by {author}:")
+            available_listbox.delete(0, tk.END)
+            lent_listbox.delete(0, tk.END)
+            available_listbox.insert(tk.END, f"Books by {author}:")
             for book in books:
-                listbox.insert(tk.END, str(book))
+                if book.is_lent:
+                    lent_listbox.insert(tk.END, str(book))
+                else:
+                    available_listbox.insert(tk.END, str(book))
         else:
-            messagebox.showinfo("Not Found", "No books found for this author.")
+            messagebox.showinfo("Not Found", "No books found by this author.")
 
 def update_book_list():
-    listbox.delete(0, tk.END)
-    listbox.insert(tk.END, "Available Books:")
-    for book in library:
-        listbox.insert(tk.END, str(book))
+    available_listbox.delete(0, tk.END)
+    lent_listbox.delete(0, tk.END)
+
+    for book in library.books:
+        if not book.is_lent:
+            available_listbox.insert(tk.END, str(book))
+        else:
+            lent_listbox.insert(tk.END, str(book))
 
 def clear_inputs():
     title_entry.delete(0, tk.END)
@@ -104,9 +110,8 @@ def clear_inputs():
 
 # ================= UI Layout =================
 
-# Labels & Entries
 frame = ttk.Frame(root, padding=15)
-frame.pack(fill="both", expand=True)
+frame.pack(fill="x")
 
 # Title
 ttk.Label(frame, text="Title").grid(row=0, column=0, sticky="e", padx=PAD_X, pady=PAD_Y)
@@ -143,19 +148,34 @@ ttk.Button(button_frame, text="Return Book", command=return_book).grid(row=0, co
 ttk.Button(button_frame, text="Remove Book", command=remove_book).grid(row=0, column=3, padx=5)
 ttk.Button(button_frame, text="Search by Author", command=view_books_by_author).grid(row=0, column=4, padx=5)
 
-# Book list display
-ttk.Label(frame, text="Library Inventory").grid(row=6, column=0, columnspan=2, pady=(20, 5))
-listbox = tk.Listbox(frame, height=12, font=("Segoe UI", 10))
-listbox.grid(row=7, column=0, columnspan=2, sticky="nsew", pady=5)
+# ========== Notebook Tabs ==========
+notebook = ttk.Notebook(root)
+notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
-# Scrollbar for listbox
-scrollbar = ttk.Scrollbar(frame, orient="vertical", command=listbox.yview)
-scrollbar.grid(row=7, column=2, sticky="ns")
-listbox.config(yscrollcommand=scrollbar.set)
+# Available Books Tab
+available_tab = ttk.Frame(notebook)
+notebook.add(available_tab, text="Available Books")
 
-# Grid resizing
+available_listbox = tk.Listbox(available_tab, height=10, font=("Segoe UI", 10))
+available_listbox.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+
+available_scroll = ttk.Scrollbar(available_tab, orient="vertical", command=available_listbox.yview)
+available_scroll.pack(side="right", fill="y")
+available_listbox.config(yscrollcommand=available_scroll.set)
+
+# Lent Books Tab
+lent_tab = ttk.Frame(notebook)
+notebook.add(lent_tab, text="Lent Books")
+
+lent_listbox = tk.Listbox(lent_tab, height=10, font=("Segoe UI", 10), fg="gray")
+lent_listbox.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+
+lent_scroll = ttk.Scrollbar(lent_tab, orient="vertical", command=lent_listbox.yview)
+lent_scroll.pack(side="right", fill="y")
+lent_listbox.config(yscrollcommand=lent_scroll.set)
+
+# Resize config
 frame.columnconfigure(1, weight=1)
-frame.rowconfigure(7, weight=1)
 
 update_book_list()
 root.mainloop()
